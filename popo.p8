@@ -19,13 +19,18 @@ once = false
 music(1)
 palt(0, true)
 
-
+--[[this handles player sprite animation--]]
 function draw_move()
+	
+	--[[hack, threshold used to slow down the animation, otherwise it moves too fast--]]
 	player.animthreshold += 1
 	player.moving = true
+	--[[only moves every 3 loops, can probably move this to the calling function for efficiency--]]
 	if(player.animthreshold%3 == 0)
 	then
 		player.sprite += 1
+		
+		--[[loops through player walking sprites, which is sprite 0 through sprite 3--]]
 		if player.sprite > 4
 		then 
 			player.sprite = 0 
@@ -34,11 +39,14 @@ function draw_move()
 	end
 end
 
+--[[takes pixel location and returns the sprite sheet value of the sprite block that is drawn on screen at that position--]]
 function px_to_blk(x,y)
 	
+	--[[the screen is 128x128, so divide by 8 to find the cell position of the sprite--]]
 	x = flr(x/8)
 	y = flr(y/8)
 
+	--[[mget returns the sprite sheet value of the map at the given value [0-15],[0-15] --]]
 	blk = mget(x,y)
 	
 	return blk
@@ -46,9 +54,12 @@ function px_to_blk(x,y)
 
 end
 
+--[[handles collision testing--]]
 function collision(x,y)
 
 	blk = px_to_blk(x,y)
+	
+	--[[ fget tests flags which can be 0-7, right now flag 0 in the sprite sheet indicates that it is an impassible block --]]
 	if(fget(blk,0))
 	then
 		return true
@@ -58,9 +69,14 @@ function collision(x,y)
 
 end
 
+--[[handles player movement after the buttons are registered in the update function--]]
 function move(player)
 	
+
+	--[[ this function is passed the player entity, which will be changed once we get other entity types, like enemies or npcs--]]	
 	
+	--[[ test which direction is going, then tests the sprites midpoint and bottom pixel and tests if there is a collision--]]
+	--[[ only two points are tested to save on cycles, lowest pixel was added to prevent falling through blocks and clipping --]]
 	if(player.dir == "right")
 	then
 		if not(collision(player.x+8,player.y+3) or collision(player.x+8, player.y+7))
@@ -79,8 +95,10 @@ function move(player)
 	
 end
 
+--[[tests if passed player (later entity to include enemies and npcs) is on the ground --]]
 function check_on_ground(player)
 
+	--[[tests for collision at pixels directly below player sprite's feet--]]
 	if (collision(player.x+2,player.y+8) or collision(player.x+5,player.y+8))
 	then
 		player.isonground = true 
@@ -88,11 +106,13 @@ function check_on_ground(player)
 		player.isonground = false
 	end
 
+	--[[every call, if the player is not on the ground, reduce velocity by 1, so jumping is not rigid --]]
 	if( not player.isonground)
 	then
 		player.velocity = player.velocity -1
 	end
 
+	--[[ hack, implement a while loop, so that the player sprite is capable of moving multiple pixels, but the loop will test for collision one pixel at a time, without the loop, the player could move down 2 or 3 pixels and then bypass the collision by being inside the block--]]
 	tempy=player.y-player.velocity
 	if(player.y != tempy)
 	then	
@@ -118,28 +138,29 @@ function check_on_ground(player)
 	end
 		
 		
---[[	if player.y > 56 then player.y = 56 player.velocity = 0 end ]]--
+--[[	if player.y > 56 then player.y = 56 player.velocity = 0 end --]]
 
 end
 	
 	
 
-
+--[[this function is always called by pico-8, iirc it is called every 30 frames, it can be considered to be the main function--]]
 function _update()
 	player.moving = false
 
+	--[[prevent exiting the screen, which will soon go to the wayside as we add scrolling--]]
 	if player.x < 0 then player.x = 0 end
 	if player.x > 119 then player.x = 119 end
 	if player.y < 0 then player.y = 0 end
 	if player.y > 119 then player.y = 119 end
 	
-	
+	--[[reset the jump value, this is messy, change, maybe include j in the player class--]]	
 	if player.velocity == 0 then j = 6 end
---[[	if (btn(0)) then player.x -= player.speed draw_move() player.facingleft = true end ]]--
---[[	if ((btn(1)) and (mget(player.cellx + 1, player.celly) != 4) ) then player.x += player.speed draw_move() player.facingleft = false end ]]--
-	
+
+	--[[left button detection--]]	
 	if (btn(0))
 	then
+			--[[face left flag to enable mirroring with the spr function--]]
 			player.facingleft = true
 			player.dir="left"
 			move(player)
@@ -148,6 +169,7 @@ function _update()
 	end
 
 	
+	--[[right button detection--]]
 	if (btn(1))
 	then
 	
@@ -160,7 +182,7 @@ function _update()
 
 
 			
-		
+	--[[up button detection--]]	
 	if (btn(2) and player.isonground)
 	then 
 		player.velocity = j 
@@ -176,27 +198,38 @@ function _update()
 	
 end
 
+--[[also called regularly by pico-8--]]
 function _draw()	
+	--[[clear the screen--]]
 	cls()
+	--[[draws from cell 0,0 on the screen, from 0,0 on the map sheet, draws 16x16 pixels from that spritesheet--]]
 	map(0,0,0,0,16,16)
+	--[[loops rain tiles--]]
 	rain()
+	--[[draws player sprite at player's coordinates, has flag for facing left in case we need to mirror the sprite--]]
 	spr(player.sprite, player.x, player.y, 1, 1, player.facingleft)
 end
 
+--[[something i threw togeher for rain--]]
 function rain()
 
+	--[[updates rain every 3 function calls--]]
 	count += 1
 	if (count %3 == 0)
 	then
 
+	--[[loops through x map tiles--]]
         for x=0,15
         do
+		--[[loops through y map tiles--]]
                 for y=0,15
                 do
+			--[[this checks each sprite in the map tile for flag 5, which is used to indicate background sprite--]]
                         if fget(mget(x,y),5)
                         then
 				value = mget(x,y)
 				
+				--[[loops through the rain animation sprites--]]
 				if(value < 58)
 				then
 					value += 1
@@ -204,6 +237,7 @@ function rain()
 					value = 55
 				end		
 				mset(x,y, value)
+			--[[this checks sprites for map flag value 2, which indicates a surface sprite, to where we draw little rain splashes--]]
 			elseif(fget(mget(x,y),2))
 			then
 				dingo = flr(rnd(2))
