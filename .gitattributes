@@ -9,4 +9,4 @@
 # These files are text and should be normalized (Convert crlf => lf)
 *.gitattributes text
 .gitignore text
-*.p8 lua
+*.p8 linguist-language=Lua
