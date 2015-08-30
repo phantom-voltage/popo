@@ -1,6 +1,6 @@
 pico-8 cartridge // http://www.pico-8.com
 version 4
-set ft=lua:
+vim: set ft=lua:
 __lua__
 
 player = {}
