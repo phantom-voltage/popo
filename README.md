@@ -12,6 +12,7 @@
 5. ~~Add jumping animation~~
 6. Figure out how combat should work.
   * Y's has simple run into enemies combat, which actually goes along with roguelike move to attack.
+7. Generalize rain function to handle ALL background sprites. This is rather simple, but I'm going to watch anime now and do other shit. All background sprites should have the same animation, let's say 4. Then just cycle given that sprites starting frame. Maybe define each type's starting frame in the beginning of the code.
 
 
 ###Notes:
